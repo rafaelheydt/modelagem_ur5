@@ -1,16 +1,12 @@
 """
 UR5 Kinematics – FK + IK
-========================
-ENGA73 – Sistemas Robóticos | UFBA 2026/1
 """
 
 import numpy as np
 
-# ─────────────────────────────────────────────────────────────────────────────
 # PARÂMETROS DH
-# ─────────────────────────────────────────────────────────────────────────────
 
-D1, D4, D5, D6 = 0.089159, 0.10915, 0.09465, 0.17591
+D1, D4, D5, D6 = 0.089159, 0.10915, 0.09465, 0.1788
 A2, A3         = -0.425, -0.39225
 
 
@@ -27,9 +23,7 @@ DH = [
 JOINT_OFFSET = np.array([0, -90, 0, -90, 0, 0], dtype=float)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # CINEMÁTICA DIRETA (FK)
-# ─────────────────────────────────────────────────────────────────────────────
 
 def dh_transform(alpha, a, d, theta):
     """
@@ -60,13 +54,7 @@ def fk_com_offset(thetas_deg):
     return fk(np.array(thetas_deg, dtype=float) + JOINT_OFFSET)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # FUNÇÕES AUXILIARES
-# ─────────────────────────────────────────────────────────────────────────────
-
-def _safe_arccos(x):
-    """arccos com clamp numérico para evitar NaN por erros de ponto flutuante."""
-    return np.arccos(np.clip(float(x), -1.0, 1.0))
 
 def rotation_to_rpy(R):
     sy = np.sqrt(R[0,0]**2 + R[1,0]**2)
@@ -102,9 +90,7 @@ def angular_error_deg(R_calc, R_gt):
     return np.degrees(np.arccos(cos_a))
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 4. CINEMÁTICA INVERSA (IK) 
-# ─────────────────────────────────────────────────────────────────────────────
 
 def _solve_theta1(T06):
     P05 = (T06 @ np.array([0, 0, -D6, 1]) - np.array([0, 0, 0, 1]))[:3]
@@ -122,7 +108,7 @@ def _solve_theta1(T06):
 
 def _solve_theta5(T06, t1):
     P06 = T06[:3, 3]
-    P16z = P06[0]*np.sin(t1) - P06[1]*np.cos(t1)   # componente z de ¹P₆
+    P16z = P06[0]*np.sin(t1) - P06[1]*np.cos(t1)   # componente z de 1P6
 
     arg = (P16z - D4) / D6
     t5 = np.arccos(np.clip(arg, -1.0, 1.0))
@@ -174,7 +160,7 @@ def _solve_theta4(T14, t2, t3):
     T34 = np.linalg.inv(T13) @ T14
     return np.arctan2(T34[1, 0], T34[0, 0])                 
 
-def ik(T06_desired, verbose=False):
+def ik(T06_desired, print_resultados=False):
     T06 = np.array(T06_desired, dtype=float)
     solutions = []
 
@@ -196,7 +182,7 @@ def ik(T06_desired, verbose=False):
                 sol = np.degrees([t1, t2, t3, t4, t5, t6])
                 solutions.append(sol)
 
-                if verbose:
+                if print_resultados:
                     print(f"  Sol {len(solutions):2d} | "
                           f"shoulder {shoulder} | elbow {elbow} | wrist {wrist} | "
                           f"θ = {np.round(sol, 1)}")
@@ -204,8 +190,8 @@ def ik(T06_desired, verbose=False):
     return solutions
 
 
-def ik_com_offset(T06_desired, verbose=False):
-    solutions_model = ik(T06_desired, verbose=verbose)
+def ik_com_offset(T06_desired, print_resultados=False):
+    solutions_model = ik(T06_desired, print_resultados=print_resultados)
     return [sol - JOINT_OFFSET for sol in solutions_model]
 
 
